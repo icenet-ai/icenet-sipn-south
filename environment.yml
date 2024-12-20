@@ -1,0 +1,20 @@
+name: icenet-sipn-south
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - cf-units
+  - copernicusmarine
+  - ipykernel
+  - jupyterlab
+  - notebook=6
+  - jupyter_server=1
+  - libnetcdf
+  - nbdime
+  - netcdf4=1.6.0
+  - pip
+  - python<3.12
+  - "tensorflow<2.16=cpu*"
+  - pip:
+      - ecmwflibs
+      - icenet @ git+https://github.com/icenet-ai/icenet@9d9f615eed0b814a926bc0acff59c94202998e71
