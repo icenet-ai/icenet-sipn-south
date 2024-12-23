@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icenet_sipn_south"
+dynamic = ["version", "readme"]
+requires-python = ">=3.8"
+description = "Library to compute metrics from IceNet library for SIPN South submission"
+license = { file = "LICENSE" }
+authors = [{name = "Bryn Noel Ubald"}]
+maintainers = [
+  { email = "bryald@bas.ac.uk" }
+]
+dependencies = [
+  "icenet",
+  "ipywidgets",
+  "matplotlib",
+  "netcdf4",
+  "pip",
+  "rioxarray",
+  "setuptools",
+  "xarray[io]"
+]
+classifiers = [
+    "Development Status :: 3",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[tool.setuptools]
+py-modules = ["icenet_sipn_south"]
+
+[tool.setuptools.dynamic]
+version = {attr = "icenet_sipn_south.__version__"}
+readme = {file = ["README.md"]}
+
+[project.optional-dependencies]
+dev = [
+  "watchdog",
+  "coverage",
+  "twine",
+  "pytest",
+  "build",
+  "importlib_metadata"
+]
+docs = [
+  "jinja2",
+  "Sphinx"
+]
+
+[project.urls]
+"Source" = "https://github.com/icenet-ai/icenet-sipn"
+"Issue tracker" = "https://github.com/icenet-ai/icenet-sipn/issues"
+
+[tool.pytest.ini_options]
+addopts = "-ra --ignore=setup.py"
+testpaths = [
+    "icenet_sipn_south",
+]
