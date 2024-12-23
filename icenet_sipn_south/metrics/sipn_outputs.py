@@ -4,14 +4,11 @@ import os
 from pathlib import Path
 
 import pandas as pd
+
 from icenet.plotting.utils import get_obs_da
 
 from ..process.icenet import IceNetForecastLoader
 from .sea_ice_area import SeaIceArea
-
-# from .sea_ice_probability import SeaIceProbability
-# from .ice_free_dates import IceFreeDates
-
 
 class SIPNSouthOutputs(
     IceNetForecastLoader,
@@ -97,40 +94,64 @@ class SIPNSouthOutputs(
         """Used to check that the forecast period is within June-November."""
         raise NotImplementedError
 
-    def diagnostic_1(self, method="mean"):
+    def diagnostic_1(self, method="mean", output_dir=None):
+
         self.xarr = self.xarr_
         self.compute_daily_sea_ice_area(method=method)
         self.compute_daily_sea_ice_area(method="observation")
         self.plot_sia()
 
-        output_dir = Path("outputs/")
-        if not os.path.exists(output_dir):
-            output_dir.mkdir(parents=True, exist_ok=True)
-
         if method == "ensemble":
             sia = self.xarr.sea_ice_area_daily
             ens_members = sia.sizes["ensemble"]
             for ensemble in range(ens_members):
-                df = sia.sel(ensemble=ensemble).to_dataframe()
-                self.save_diagnostic(
-                    df,
+                self.save_diagnostic_1(
+                    sia.sel(ensemble=ensemble),
                     column_name="sea_ice_area_daily",
                     descr="totalarea",
                     forecast_id=str(ensemble + 1),
+                    output_dir=output_dir,
                 )
         else:
             sia = self.xarr.sea_ice_area_daily_mean
-            df = sia.to_dataframe()
-            self.save_diagnostic(
-                df,
+            self.save_diagnostic_1(
+                sia,
                 column_name="sea_ice_area_daily_mean",
                 descr="totalarea",
                 forecast_id=str(1),
+                output_dir=output_dir,
             )
 
-    def save_diagnostic(
-        self, df, column_name, descr, forecast_id="001", output_dir=Path("outputs/")
+    def diagnostic_2(self, method="mean", output_dir=None):
+        self.xarr = self.xarr_
+        self.compute_binned_daily_sea_ice_area(method=method)
+
+        if method == "ensemble":
+            sia_binned = self.xarr.sea_ice_area_binned_daily
+            ens_members = sia_binned.sizes["ensemble"]
+            for ensemble in range(ens_members):
+                self.save_diagnostic_2(
+                    sia_binned.sel(ensemble=ensemble),
+                    descr="regional-area",
+                    forecast_id=str(ensemble + 1),
+                    output_dir=output_dir,
+                )
+        else:
+            sia_binned = self.xarr.sea_ice_area_binned_daily_mean
+            self.save_diagnostic_2(
+                sia_binned,
+                descr="regional-area",
+                forecast_id=str(1),
+                output_dir=output_dir,
+            )
+
+    def save_diagnostic_1(
+        self, sia, column_name, descr, forecast_id="001", output_dir=None
     ):
+        output_dir = self.get_output_dir(output_dir)
+        self.make_output_dir(output_dir)
+
+        df = sia.to_dataframe()
         days = df.index.array
         start_date, end_date = days[0], days[-1]
         start_date, end_date = (
@@ -141,5 +162,40 @@ class SIPNSouthOutputs(
             f"{self.group_name}_{forecast_id.zfill(3)}_{start_date}-{end_date}_{descr}.txt"
         )
         df_sia = df[column_name].to_frame().T
-        df_sia_rounded = df_sia.map(lambda x: f"{x:.4f}")
+        df_sia_rounded = df_sia.map(lambda x: f"{x:.4f}").astype(float)
         df_sia_rounded.to_csv(filepath, index=False, header=False)
+
+    def save_diagnostic_2(
+        self, sia_binned, descr, forecast_id="001", output_dir=None
+    ):
+        output_dir = self.get_output_dir(output_dir)
+        self.make_output_dir(output_dir)
+
+        df = sia_binned.transpose("bins", "day").to_dataframe().reset_index()
+        days = df.day
+        start_date, end_date = days.min(), days.max()
+        start_date, end_date = (
+            pd.to_datetime(start_date).strftime("%Y%m%d"),
+            pd.to_datetime(end_date).strftime("%Y%m%d"),
+        )
+
+        filepath = output_dir / Path(
+            f"{self.group_name}_{forecast_id.zfill(3)}_{start_date}-{end_date}_{descr}.txt"
+        )
+
+        df_pivot = df.pivot(index="bins", columns="day", values=sia_binned.name)
+
+        # Round values as required
+        df_pivot = df_pivot.map(lambda x: f"{x:.4f}").astype(float)
+        df_pivot.to_csv(filepath, index=False, header=False)
+
+    def get_output_dir(self, output_dir=None):
+        if not output_dir:
+            start_year = pd.to_datetime(self.forecast_start_date).strftime("%Y")
+            end_year = pd.to_datetime(self.forecast_end_date).strftime("%Y")
+            output_dir = Path(f"outputs/{start_year}-{end_year}/txt")
+        return output_dir
+
+    def make_output_dir(self, output_dir):
+        if not os.path.exists(output_dir):
+            output_dir.mkdir(parents=True, exist_ok=True)
