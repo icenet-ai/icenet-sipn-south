@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objs as go
 import xarray as xr
 
+
 class SeaIceArea(ABC):
     """Sea Ice Area computation."""
 
@@ -46,7 +47,6 @@ class SeaIceArea(ABC):
 
         return sea_ice_area
 
-
     def _compute_binned_sea_ice_area(self, sea_ice_concentration, *args, **kwargs):
         """Compute binned Sea Ice Area for a singular day.
 
@@ -65,17 +65,18 @@ class SeaIceArea(ABC):
 
         # Convert longitudes from (-180 to 180) to (0 to 360) as per Diagnostic 2 of SIPN South.
         lon_360 = sic.lon.values
-        lon_360[lon_360<0] += 360
+        lon_360[lon_360 < 0] += 360
         lon_360
 
         sic = sic.assign_coords({"lon_360": (("xc", "yc"), lon_360)})
 
-        longitude_bin = xr.DataArray(np.linspace(0, 360, 36+1))
+        longitude_bin = xr.DataArray(np.linspace(0, 360, 36 + 1))
 
-        sea_ice_area_binned = sic.groupby_bins("lon_360", longitude_bin).map(self._compute_sea_ice_area, args=args, **kwargs)
+        sea_ice_area_binned = sic.groupby_bins("lon_360", longitude_bin).map(
+            self._compute_sea_ice_area, args=args, **kwargs
+        )
 
         return sea_ice_area_binned
-
 
     def compute_daily_sea_ice_area(
         self, method="mean", grid_cell_area=25 * 25, threshold=0.15, plot=False
@@ -226,7 +227,10 @@ class SeaIceArea(ABC):
         if method == "mean":
             sea_ice_area_binned_daily_ds = xr.Dataset(
                 data_vars=dict(
-                    sea_ice_area_binned_daily_mean=(["day", "bins"], sea_ice_area_binned_daily),
+                    sea_ice_area_binned_daily_mean=(
+                        ["day", "bins"],
+                        sea_ice_area_binned_daily,
+                    ),
                 ),
                 coords=dict(
                     day=forecast_dates,
@@ -236,28 +240,40 @@ class SeaIceArea(ABC):
         elif method == "observation":
             sea_ice_area_binned_daily_osisaf_ds = xr.Dataset(
                 data_vars=dict(
-                    sea_ice_area_binned_daily_osisaf=(("day", "bins"), sea_ice_area_binned_daily),
+                    sea_ice_area_binned_daily_osisaf=(
+                        ("day", "bins"),
+                        sea_ice_area_binned_daily,
+                    ),
                 ),
                 coords=dict(
                     day=forecast_dates,
                     # bins=bins,
                 ),
             )
-            sea_ice_area_binned_daily_osisaf_ds["sea_ice_area_binned_daily_osisaf"].attrs[
-                "long_name"
-            ] = "Total Sea-Ice Area for each day"
-            sea_ice_area_binned_daily_osisaf_ds["sea_ice_area_binned_daily_osisaf"].attrs["units"] = (
-                "10⁶ km²"
-            )
+            sea_ice_area_binned_daily_osisaf_ds[
+                "sea_ice_area_binned_daily_osisaf"
+            ].attrs["long_name"] = "Total Sea-Ice Area for each day"
+            sea_ice_area_binned_daily_osisaf_ds[
+                "sea_ice_area_binned_daily_osisaf"
+            ].attrs["units"] = "10⁶ km²"
         elif method == "ensemble":
             sea_ice_area_binned_daily_mean = sea_ice_area_binned_daily.mean(axis=1)
             sea_ice_area_binned_daily_stddev = sea_ice_area_binned_daily.std(axis=1)
 
             sea_ice_area_binned_daily_ds = xr.Dataset(
                 data_vars=dict(
-                    sea_ice_area_binned_daily=(("day", "ensemble", "bins"), sea_ice_area_binned_daily),
-                    sea_ice_area_binned_daily_mean=(("day", "bins"), sea_ice_area_binned_daily_mean),
-                    sea_ice_area_binned_daily_stddev=(("day", "bins"), sea_ice_area_binned_daily_stddev),
+                    sea_ice_area_binned_daily=(
+                        ("day", "ensemble", "bins"),
+                        sea_ice_area_binned_daily,
+                    ),
+                    sea_ice_area_binned_daily_mean=(
+                        ("day", "bins"),
+                        sea_ice_area_binned_daily_mean,
+                    ),
+                    sea_ice_area_binned_daily_stddev=(
+                        ("day", "bins"),
+                        sea_ice_area_binned_daily_stddev,
+                    ),
                 ),
                 coords=dict(
                     day=forecast_dates,
@@ -267,12 +283,16 @@ class SeaIceArea(ABC):
             )
 
         if method != "observation":
-            sea_ice_area_binned_daily_ds["sea_ice_area_binned_daily_mean"].attrs["long_name"] = (
-                "Total Sea-Ice Area for each day per 10° longitude bin"
-            )
-            sea_ice_area_binned_daily_ds["sea_ice_area_binned_daily_mean"].attrs["units"] = "10⁶ km²"
+            sea_ice_area_binned_daily_ds["sea_ice_area_binned_daily_mean"].attrs[
+                "long_name"
+            ] = "Total Sea-Ice Area for each day per 10° longitude bin"
+            sea_ice_area_binned_daily_ds["sea_ice_area_binned_daily_mean"].attrs[
+                "units"
+            ] = "10⁶ km²"
 
-            self.xarr = xr.merge([self.xarr, sea_ice_area_binned_daily_ds], compat="override")
+            self.xarr = xr.merge(
+                [self.xarr, sea_ice_area_binned_daily_ds], compat="override"
+            )
         else:
             self.xarr = xr.merge(
                 [self.xarr, sea_ice_area_binned_daily_osisaf_ds], compat="override"
