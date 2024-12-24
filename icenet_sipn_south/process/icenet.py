@@ -1,18 +1,16 @@
+import datetime as dt
 import logging
 import os
-
 from abc import ABC
+from datetime import timedelta
 from glob import glob
 from pathlib import Path
 
-import datetime as dt
 import numpy as np
 import pandas as pd
 import xarray as xr
-from datetime import timedelta
-
-from icenet.plotting.video import xarray_to_video as xvid
 from icenet.data.sic.mask import Masks
+from icenet.plotting.video import xarray_to_video as xvid
 from icenet.process.predict import get_prediction_data
 
 
@@ -29,7 +27,6 @@ class IceNetForecastLoader(ABC):
         """
         self.prediction_pipeline_path = prediction_pipeline_path
         self.prediction_name = prediction_name
-
 
     @property
     def get_hemisphere(self):
@@ -93,14 +90,16 @@ class IceNetForecastLoader(ABC):
             + ".nc"
         )
 
-        ds = xr.open_dataset(icenet_output_netcdf_file).isel(leadtime=slice(None, self.forecast_leadtime))
+        ds = xr.open_dataset(icenet_output_netcdf_file).isel(
+            leadtime=slice(None, self.forecast_leadtime)
+        )
         try:
             ds_subset = ds.sel(time=[self.forecast_init_date])
         except KeyError as e:
             logging.error(f"Forecast {self.forecast_init_date} not in netCDF file")
             logging.error(
                 "Available forecast init dates in netCDF file: ",
-                f"{[pd.to_datetime(str(date)).strftime('%Y-%m-%d') for date in ds.time.data]}"
+                f"{[pd.to_datetime(str(date)).strftime('%Y-%m-%d') for date in ds.time.data]}",
             )
             raise e
 
@@ -146,7 +145,7 @@ class IceNetForecastLoader(ABC):
                 data[ensemble, :, ~grid_cell_mask, i] = 0.0
 
         # Select subset of leadtime to work with based on user specification
-        data = data[..., :self.forecast_leadtime]
+        data = data[..., : self.forecast_leadtime]
         xarr = ds_subset.copy()
         # print(ds_subset.coords)
         # print("___")
