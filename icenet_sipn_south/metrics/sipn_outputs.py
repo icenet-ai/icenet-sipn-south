@@ -6,20 +6,19 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
-
 from icenet.data.sic.mask import Masks
 from icenet.plotting.utils import get_obs_da
-from icenet.process.predict import get_refsic, get_refcube
+from icenet.process.predict import get_refcube, get_refsic
 
 from ..process.icenet import IceNetForecastLoader
 from .sea_ice_area import SeaIceArea
+
 
 class SIPNSouthOutputs(
     IceNetForecastLoader,
     SeaIceArea,
 ):
-    """SIPN Sea Ice Outlook Submission for IceNet (with daily averaging)
-    """
+    """SIPN Sea Ice Outlook Submission for IceNet (with daily averaging)"""
 
     def __init__(
         self,
@@ -54,8 +53,8 @@ class SIPNSouthOutputs(
         )
 
         self.forecast_start_date = pd.to_datetime(forecast_init_date) + dt.timedelta(
-                days=1
-            )
+            days=1
+        )
 
         if forecast_leadtime:
             self.forecast_leadtime = forecast_leadtime
@@ -97,7 +96,6 @@ class SIPNSouthOutputs(
         raise NotImplementedError
 
     def diagnostic_1(self, method="mean", output_dir=None):
-
         self.xarr = self.xarr_
         self.compute_daily_sea_ice_area(method=method)
         self.compute_daily_sea_ice_area(method="observation")
@@ -156,80 +154,86 @@ class SIPNSouthOutputs(
         ref_cube = get_refcube(north, south)
         land_mask = Masks(north=north, south=south).get_land_mask()
         longitude = xarr.lon.values
-        longitude[longitude<0] += 360
+        longitude[longitude < 0] += 360
 
         # Sea ice concentration mean (in %)
-        siconc = xarr.sel(time=self.forecast_init_date)["sic_mean"].transpose("leadtime", "yc", "xc") * 100.
+        siconc = (
+            xarr.sel(time=self.forecast_init_date)["sic_mean"].transpose(
+                "leadtime", "yc", "xc"
+            )
+            * 100.0
+        )
 
         # Grid cell area (in m^2)
-        areacello = np.full_like(land_mask, 25*25, dtype=float) * 1E6
+        areacello = np.full_like(land_mask, 25 * 25, dtype=float) * 1e6
 
         # Land-sea mask, percentage of grid cell covered by ocean (in %)
         sftof = (~land_mask * 100).astype(float)
 
         diag3_ds_template = xr.Dataset(
             data_vars=dict(
-                siconc=(("time", "yc", "xc"),
-                        siconc.data,
-                        {
-                            "units": "%",
-                            "long_name": "Sea-ice area fraction"
-                        }
-                    ),
-                areacello=(("yc", "xc"),
-                        areacello,
-                        {
-                            "units": "m2",
-                            "long_name": "Ocean Grid-Cell Area"
-                        }
-                        ),
-                sftof=(("yc", "xc"),
-                        sftof,
-                            {
-                                "units": "%",
-                                "long_name": "Sea Area Fraction"
-                            }
-                    ),
+                siconc=(
+                    ("time", "yc", "xc"),
+                    siconc.data,
+                    {"units": "%", "long_name": "Sea-ice area fraction"},
+                ),
+                areacello=(
+                    ("yc", "xc"),
+                    areacello,
+                    {"units": "m2", "long_name": "Ocean Grid-Cell Area"},
+                ),
+                sftof=(
+                    ("yc", "xc"),
+                    sftof,
+                    {"units": "%", "long_name": "Sea Area Fraction"},
+                ),
                 # Lambert_Azimuthal_Grid=ref_sic.Lambert_Azimuthal_Grid,
             ),
             coords=dict(
-                time=pd.date_range(self.forecast_init_date, end=self.forecast_end_date, inclusive="right"),
-                xc=xarr.xc * 1000.,
-                yc=xarr.yc * 1000.,
-                latitude=(("yc", "xc"),
-                        xarr.lat.data,
-                        {
-                            "units": "degrees east",
-                            "long_name": "Latitude"
-                        }
-                        ),
-                longitude=(("yc", "xc"),
-                        longitude,
-                        {
-                            "units": "degrees north",
-                            "long_name": "Longitude"
-                        }
-                        ),
-            )
+                time=pd.date_range(
+                    self.forecast_init_date,
+                    end=self.forecast_end_date,
+                    inclusive="right",
+                ),
+                xc=xarr.xc * 1000.0,
+                yc=xarr.yc * 1000.0,
+                latitude=(
+                    ("yc", "xc"),
+                    xarr.lat.data,
+                    {"units": "degrees east", "long_name": "Latitude"},
+                ),
+                longitude=(
+                    ("yc", "xc"),
+                    longitude,
+                    {"units": "degrees north", "long_name": "Longitude"},
+                ),
+            ),
         )
 
         diag3_ds_template["xc"].attrs = {
-                            "units": "m",
-                            "long_name": "x-coordinate in Lambert Azimuthal Equal Area projection"
-                    }
+            "units": "m",
+            "long_name": "x-coordinate in Lambert Azimuthal Equal Area projection",
+        }
 
         diag3_ds_template["yc"].attrs = {
-                            "units": "m",
-                            "long_name": "y-coordinate in Lambert Azimuthal Equal Area projection"
-                    }
+            "units": "m",
+            "long_name": "y-coordinate in Lambert Azimuthal Equal Area projection",
+        }
 
         diag3_ds_template.attrs["projection"] = "Lambert Azimuthal Equal Area"
-        diag3_ds_template.attrs["proj4"] = ref_sic.Lambert_Azimuthal_Grid.attrs["proj4_string"]
+        diag3_ds_template.attrs["proj4"] = ref_sic.Lambert_Azimuthal_Grid.attrs[
+            "proj4_string"
+        ]
 
         if method == "ensemble":
             ens_members = xarr.sizes["ensemble"]
             for ensemble in range(ens_members):
-                siconc = xarr.sel(time=self.forecast_init_date, ensemble=ensemble)["sic"].transpose("leadtime", "yc", "xc") * 100.
+                siconc = (
+                    xarr.sel(time=self.forecast_init_date, ensemble=ensemble)[
+                        "sic"
+                    ].transpose("leadtime", "yc", "xc")
+                    * 100.0
+                )
                 xarr_out = diag3_ds_template.copy()
                 xarr_out["siconc"].data = siconc.data
                 self.save_diagnostic_3(
@@ -239,7 +243,12 @@ class SIPNSouthOutputs(
                     output_dir=output_dir,
                 )
         else:
-            siconc = xarr.sel(time=self.forecast_init_date)["sic_mean"].transpose("leadtime", "yc", "xc") * 100.
+            siconc = (
+                xarr.sel(time=self.forecast_init_date)["sic_mean"].transpose(
+                    "leadtime", "yc", "xc"
+                )
+                * 100.0
+            )
             xarr_out = diag3_ds_template.copy()
             xarr_out["siconc"].data = siconc.data
             self.save_diagnostic_3(
@@ -272,9 +281,7 @@ class SIPNSouthOutputs(
         df_sia_rounded = df_sia.map(lambda x: f"{x:.4f}").astype(float)
         df_sia_rounded.to_csv(filepath, index=False, header=False)
 
-    def save_diagnostic_2(
-        self, sia_binned, descr, forecast_id="001", output_dir=None
-    ):
+    def save_diagnostic_2(self, sia_binned, descr, forecast_id="001", output_dir=None):
         output_dir = self.get_output_dir(output_dir) / Path("txt")
         self.make_output_dir(output_dir)
 
@@ -317,10 +324,7 @@ class SIPNSouthOutputs(
         vars_encoding = {var: compression for var in xarr.data_vars}
         coords_encoding = {coord: compression for coord in xarr.coords}
 
-        xarr.to_netcdf(file_path,
-                        mode="w",
-                        encoding=vars_encoding | coords_encoding
-                    )
+        xarr.to_netcdf(file_path, mode="w", encoding=vars_encoding | coords_encoding)
 
     def get_output_dir(self, output_dir=None):
         if not output_dir:
