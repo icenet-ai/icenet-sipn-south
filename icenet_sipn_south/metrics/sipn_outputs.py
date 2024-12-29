@@ -86,9 +86,9 @@ class SIPNSouthOutputs(
                 sic = sic.transpose("yc", "xc", "leadtime")
                 # Add extra dimension to emulate having forecast time in icenet.
                 self.obs = sic.expand_dims(new_dim=[0])
-            except KeyError as e:
+            except (KeyError, OSError) as e:
                 logging.error(
-                    f"Observational data not available for given forecast init date\n{e}"
+                    f"{e}\nObservational data not available for given forecast init date"
                 )
 
     def check_forecast_period(self):
@@ -98,7 +98,8 @@ class SIPNSouthOutputs(
     def diagnostic_1(self, method="mean", output_dir=None):
         self.xarr = self.xarr_
         self.compute_daily_sea_ice_area(method=method)
-        self.compute_daily_sea_ice_area(method="observation")
+        if hasattr(self, "obs"):
+            self.compute_daily_sea_ice_area(method="observation")
         self.plot_sia()
 
         if method == "ensemble":
