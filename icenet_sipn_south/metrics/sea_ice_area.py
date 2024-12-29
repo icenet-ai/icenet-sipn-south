@@ -16,7 +16,6 @@ class SeaIceArea(ABC):
     def _compute_sea_ice_area(
         self,
         sea_ice_concentration,
-        ensemble_axis=0,
         grid_cell_area=25 * 25,
         threshold=0.15,
         plot=False,
@@ -26,8 +25,7 @@ class SeaIceArea(ABC):
         Computes the total Sea Ice Area (SIC>=15%) for one day.
 
         Args:
-            ensemble_axis: Axis at which the ensemble members are stored.
-                            Used to omit reduction operation across this axis.
+            grid_cell_area: Grid cell area in km^2.
         """
         # self.clear_sia()
         sic = sea_ice_concentration
@@ -42,8 +40,11 @@ class SeaIceArea(ABC):
         # Prevent summation across "ensemble" dimension
         valid_dims = [dim for dim in sic.dims if dim != "ensemble"]
 
-        # Sum across all axes except ensemble
-        sea_ice_area = sic.sum(dim=valid_dims) * (grid_cell_area / 1e6)
+        # Sum across all axes except ensemble (Gives SIA in km^2)
+        sea_ice_area = sic.sum(dim=valid_dims) * grid_cell_area
+
+        # SIPN South requests SIA units to be in 10^6 km^2
+        sea_ice_area /= 1E6
 
         return sea_ice_area
 
@@ -66,7 +67,6 @@ class SeaIceArea(ABC):
         # Convert longitudes from (-180 to 180) to (0 to 360) as per Diagnostic 2 of SIPN South.
         lon_360 = sic.lon.values
         lon_360[lon_360 < 0] += 360
-        lon_360
 
 
         sic = sic.assign_coords({"lon_360": (("yc", "xc"), lon_360)})
