@@ -68,7 +68,9 @@ class SeaIceArea(ABC):
         lon_360[lon_360 < 0] += 360
         lon_360
 
-        sic = sic.assign_coords({"lon_360": (("xc", "yc"), lon_360)})
+
+        sic = sic.assign_coords({"lon_360": (("yc", "xc"), lon_360)})
+        # sic = sic.assign_coords(lon_360=((sic.lon + 360) % 360))
 
         longitude_bin = xr.DataArray(np.linspace(0, 360, 36 + 1))
 
