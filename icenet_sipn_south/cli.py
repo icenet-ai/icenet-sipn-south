@@ -24,11 +24,25 @@ def diagnostic_args() -> object:
     ap.add_argument("forecast_init_date", help="Start date of the forecast to use")
 
     ap.add_argument(
+        "-d",
+        "--diagnostics",
+        help="Comma separated list of diagnostics to run, Options: `1,2,3`",
+        type=csv_arg,
+        default=[1, 2, 3],
+    )
+    ap.add_argument(
         "-fl",
         "--forecast_leadtime",
         type=int,
         default=90,
         help="IceNet by default forecasts up to 93 days ahead, can instead specify how many days to process for this diagnostic, Default=90",
+    )
+    ap.add_argument(
+        "-go",
+        "--get-obs",
+        default=False,
+        action="store_true",
+        help="Whether to include OSI-SAF observational data in plot/processing",
     )
     method_choices = ["ensemble", "mean"]
     ap.add_argument(
@@ -44,20 +58,6 @@ def diagnostic_args() -> object:
         default=False,
         action="store_true",
         help="Whether to show any plots",
-    )
-    ap.add_argument(
-        "-go",
-        "--get-obs",
-        default=False,
-        action="store_true",
-        help="Whether to include OSI-SAF observational data in plot/processing",
-    )
-    ap.add_argument(
-        "-d",
-        "--diagnostics",
-        help="Comma separated list of diagnostics to run, Options: `1,2,3`",
-        type=csv_arg,
-        default=[1, 2, 3],
     )
 
     args = ap.parse_args()
