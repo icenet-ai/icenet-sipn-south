@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "icenet_sipn_south"
 dynamic = ["version", "readme"]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 description = "Library to compute metrics from IceNet library for SIPN South submission"
 license = { file = "LICENSE" }
 authors = [{name = "Bryn Noel Ubald"}]
@@ -33,6 +33,9 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
+
+[project.scripts]
+icenet_sipnsouth_diagnostics = "icenet_sipn_south.metrics.sipn_outputs:main"
 
 [tool.setuptools]
 py-modules = ["icenet_sipn_south"]

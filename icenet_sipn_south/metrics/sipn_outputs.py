@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
+from icenet_sipn_south.cli import diagnostic_args
 from icenet.data.sic.mask import Masks
 from icenet.plotting.utils import get_obs_da
 from icenet.process.predict import get_refcube, get_refsic
@@ -28,6 +29,7 @@ class SIPNSouthOutputs(
         forecast_leadtime: int = None,
         hemisphere: str = "south",
         get_obs=False,
+        plot=False,
         group_name="BAS",
     ) -> None:
         """
@@ -37,6 +39,7 @@ class SIPNSouthOutputs(
         self.north = False
         self.south = False
         self.hemisphere = hemisphere
+        self.plot = plot
         self.group_name = group_name
         if hemisphere.casefold() == "north":
             self.north = True
@@ -96,11 +99,13 @@ class SIPNSouthOutputs(
         raise NotImplementedError
 
     def diagnostic_1(self, method="mean", output_dir=None):
+        print("Processing Diagnostic 1")
         self.xarr = self.xarr_
         self.compute_daily_sea_ice_area(method=method)
         if hasattr(self, "obs"):
             self.compute_daily_sea_ice_area(method="observation")
-        self.plot_sia()
+        if self.plot:
+            self.plot_sia()
 
         if method == "ensemble":
             sia = self.xarr.sea_ice_area_daily
@@ -124,6 +129,7 @@ class SIPNSouthOutputs(
             )
 
     def diagnostic_2(self, method="mean", output_dir=None):
+        print("Processing Diagnostic 2")
         self.xarr = self.xarr_
         self.compute_binned_daily_sea_ice_area(method=method)
 
@@ -147,6 +153,7 @@ class SIPNSouthOutputs(
             )
 
     def diagnostic_3(self, method="mean", output_dir=None):
+        print("Processing Diagnostic 3")
         self.xarr = self.xarr_
         north, south = self.north, self.south
         xarr = self.xarr
@@ -337,3 +344,33 @@ class SIPNSouthOutputs(
     def make_output_dir(self, output_dir):
         if not os.path.exists(output_dir):
             output_dir.mkdir(parents=True, exist_ok=True)
+
+
+
+def main():
+    args = diagnostic_args()
+
+    pipeline_path = Path(args.pipeline_path)
+    if not pipeline_path.exists():
+        raise ValueError("Please define valid path to IceNet pipeline root directory.\n{args.pipeline_path} does not exist")
+
+    prediction = SIPNSouthOutputs(prediction_pipeline_path=args.pipeline_path,
+                            prediction_name=args.predict_name,
+                            forecast_init_date=args.forecast_init_date,
+                            forecast_leadtime=args.forecast_leadtime, # Optional - to only load subset of days
+                            hemisphere="south",
+                            get_obs=args.get_obs, # Set to False if not hindcasting or OSI-SAF
+                                                  # observational data not already downloaded
+                            plot=args.plot,
+                            )
+
+    if "1" in args.diagnostics:
+        prediction.diagnostic_1(method=args.method)
+    if "2" in args.diagnostics:
+        prediction.diagnostic_2(method=args.method)
+    if "3" in args.diagnostics:
+        prediction.diagnostic_3(method=args.method)
+
+
+if __name__ == "__main__":
+    main()
