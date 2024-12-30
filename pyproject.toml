@@ -55,7 +55,9 @@ dev = [
 ]
 docs = [
   "jinja2",
-  "Sphinx"
+  "Sphinx",
+  "sphinx-autodoc-typehints",
+  "sphinx-rtd-theme"
 ]
 
 [project.urls]
