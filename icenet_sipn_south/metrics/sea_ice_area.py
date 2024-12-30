@@ -44,7 +44,7 @@ class SeaIceArea(ABC):
         sea_ice_area = sic.sum(dim=valid_dims) * grid_cell_area
 
         # SIPN South requests SIA units to be in 10^6 km^2
-        sea_ice_area /= 1E6
+        sea_ice_area /= 1e6
 
         return sea_ice_area
 
@@ -67,7 +67,6 @@ class SeaIceArea(ABC):
         # Convert longitudes from (-180 to 180) to (0 to 360) as per Diagnostic 2 of SIPN South.
         lon_360 = sic.lon.values
         lon_360[lon_360 < 0] += 360
-
 
         sic = sic.assign_coords({"lon_360": (("yc", "xc"), lon_360)})
         # sic = sic.assign_coords(lon_360=((sic.lon + 360) % 360))

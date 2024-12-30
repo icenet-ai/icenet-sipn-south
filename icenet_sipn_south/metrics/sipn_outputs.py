@@ -6,10 +6,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
-from icenet_sipn_south.cli import diagnostic_args
 from icenet.data.sic.mask import Masks
 from icenet.plotting.utils import get_obs_da
 from icenet.process.predict import get_refcube, get_refsic
+
+from icenet_sipn_south.cli import diagnostic_args
 
 from ..process.icenet import IceNetForecastLoader
 from .sea_ice_area import SeaIceArea
@@ -346,23 +347,25 @@ class SIPNSouthOutputs(
             output_dir.mkdir(parents=True, exist_ok=True)
 
 
-
 def main():
     args = diagnostic_args()
 
     pipeline_path = Path(args.pipeline_path)
     if not pipeline_path.exists():
-        raise ValueError("Please define valid path to IceNet pipeline root directory.\n{args.pipeline_path} does not exist")
+        raise ValueError(
+            "Please define valid path to IceNet pipeline root directory.\n{args.pipeline_path} does not exist"
+        )
 
-    prediction = SIPNSouthOutputs(prediction_pipeline_path=args.pipeline_path,
-                            prediction_name=args.predict_name,
-                            forecast_init_date=args.forecast_init_date,
-                            forecast_leadtime=args.forecast_leadtime, # Optional - to only load subset of days
-                            hemisphere="south",
-                            get_obs=args.get_obs, # Set to False if not hindcasting or OSI-SAF
-                                                  # observational data not already downloaded
-                            plot=args.plot,
-                            )
+    prediction = SIPNSouthOutputs(
+        prediction_pipeline_path=args.pipeline_path,
+        prediction_name=args.predict_name,
+        forecast_init_date=args.forecast_init_date,
+        forecast_leadtime=args.forecast_leadtime,  # Optional - to only load subset of days
+        hemisphere="south",
+        get_obs=args.get_obs,  # Set to False if not hindcasting or OSI-SAF
+        # observational data not already downloaded
+        plot=args.plot,
+    )
 
     if "1" in args.diagnostics:
         prediction.diagnostic_1(method=args.method)
