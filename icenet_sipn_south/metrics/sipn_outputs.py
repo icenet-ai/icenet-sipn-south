@@ -29,13 +29,37 @@ class SIPNSouthOutputs(
         forecast_init_date: dt.date,
         forecast_leadtime: int = None,
         hemisphere: str = "south",
-        get_obs=False,
-        plot=False,
-        group_name="BAS",
+        get_obs: bool = False,
+        plot: bool = False,
+        group_name: str = "BAS",
     ) -> None:
-        """
+        r"""
+        Initialise SIPNSouthOutputs instance for IceNet (with daily averaging).
+
+        This class extends `IceNetForecastLoader` and `SeaIceArea` to provide a comprehensive
+        set of functionalities for processing, analysing, and plotting Sea Ice Prediction Network
+        (SIPN) outputs from the IceNet model. It is designed only for use against Antarctic
+        (`hemisphere="south"`) forecasts.
+
         Args:
-            prediction_path: Path to the numpy prediction outputs
+            prediction_pipeline_path: Path to the `icenet-pipeline` instance with predictions.
+            prediction_name: Name of the prediction output file (without extension).
+            forecast_init_date: Date when the forecast was initialised (format: YYYY-MM-DD).
+            forecast_leadtime: Forecast lead time in days. If not provided, it will be determined
+                from the maximum lead time available in the input data.
+            hemisphere (optional): Hemisphere for which the forecast is generated ("north" or "south").
+                                   This class is meant for use with Southern hemisphere.
+                                   Defaults to "south".
+            get_obs (optional): Whether to retrieve and include observational data from OSI-SAF.
+                                Default is False.
+            plot (optional): Whether to generate plots of Sea Ice Area (SIA) and Sea Ice Prediction Network
+                             (SIPN) results.
+                             Default is False.
+            group_name (optional): Name of the submission group for SIPN.
+                                   Default is "BAS".
+
+        Raises:
+            Exception: If an invalid hemisphere is specified.
         """
         self.north = False
         self.south = False
@@ -99,7 +123,31 @@ class SIPNSouthOutputs(
         """Used to check that the forecast period is within June-November."""
         raise NotImplementedError
 
-    def diagnostic_1(self, method="mean", output_dir=None):
+    def diagnostic_1(self, method: str = "mean", output_dir: str | None = None):
+        r"""
+        Process Diagnostic 1: Total Sea Ice Area.
+
+        This method processes the total sea ice area data for Diagnostic 1 of the Sea Ice
+        Prediction Network (SIPN) submission. It computes the daily sea ice area using either
+        the mean, ensemble members, or observed data based on the specified `method`. If plotting
+        is enabled (`plot=True` in `__init__`), it generates a time series plot of Sea Ice
+        Area (SIA). The processed data is then saved as CSV files for each ensemble member or the
+        mean value, along with observational data if available.
+
+        Args:
+            method: Method used to compute sea ice area. Can be "mean" (default) for the mean SIA,
+                "ensemble" for individual ensemble members' SIA, or "observation" for observed SIA.
+            output_dir (optional): Directory path where the CSV files for Diagnostic 1 will be saved.
+
+        Raises:
+            NotImplementedError: If an invalid `method` is provided.
+
+        Notes:
+          - The method "ensemble" saves a separate CSV file for each ensemble member, while
+            "mean" and "observation" save a single CSV file with the respective data.
+          - Observational data is included in the plot and saved if available (`get_obs=True` in
+            `__init__`).
+        """
         print("Processing Diagnostic 1")
         self.xarr = self.xarr_
         self.compute_daily_sea_ice_area(method=method)
@@ -129,7 +177,28 @@ class SIPNSouthOutputs(
                 output_dir=output_dir,
             )
 
-    def diagnostic_2(self, method="mean", output_dir=None):
+    def diagnostic_2(self, method: str = "mean", output_dir: str | None = None):
+        r"""
+        Process Diagnostic 2: Binned Sea Ice Area.
+
+        This method processes the binned sea ice area data for Diagnostic 2 of the Sea Ice
+        Prediction Network (SIPN) submission. It computes the daily sea ice area in predefined
+        bins using either the mean or individual ensemble members' values based on the specified
+        `method`. The processed data is then saved as CSV files for each ensemble member or the
+        mean value.
+
+        Args:
+            method: Method used to compute binned sea ice area. Can be "mean" (default) for the
+                mean SIA in bins, or "ensemble" for individual ensemble members' SIA in bins.
+            output_dir (optional): Directory path where the CSV files for Diagnostic 2 will be saved.
+
+        Raises:
+            NotImplementedError: If an invalid `method` is provided.
+
+        Notes:
+          - The method "ensemble" saves a separate CSV file for each ensemble member, while
+            "mean" saves a single CSV file with the respective data.
+        """
         print("Processing Diagnostic 2")
         self.xarr = self.xarr_
         self.compute_binned_daily_sea_ice_area(method=method)
@@ -153,7 +222,27 @@ class SIPNSouthOutputs(
                 output_dir=output_dir,
             )
 
-    def diagnostic_3(self, method="mean", output_dir=None):
+    def diagnostic_3(self, method: str = "mean", output_dir: str | None = None):
+        r"""
+        Process Diagnostic 3: Sea Ice Concentration (SIC) to CF Convention netCDF output.
+
+        This method processes the sea ice concentration data for Diagnostic 3 of the Sea Ice
+        Prediction Network (SIPN) submission. It computes the mean SIC or individual ensemble
+        members' SIC based on the specified `method`. The processed data is then saved as a NetCDF
+        file with the required metadata as per CF Convention.
+
+        Args:
+            method: Method used to compute sea ice concentration. Can be "mean" (default) for the
+                mean SIC, or "ensemble" for individual ensemble members' SIC.
+            output_dir (optional): Directory path where the NetCDF file for Diagnostic 3 will be saved.
+
+        Raises:
+            NotImplementedError: If an invalid `method` is provided.
+
+        Notes:
+          - The method "ensemble" saves a separate NetCDF file for each ensemble member, while
+            "mean" saves a single NetCDF file with the respective data.
+        """
         print("Processing Diagnostic 3")
         self.xarr = self.xarr_
         north, south = self.north, self.south
@@ -271,8 +360,27 @@ class SIPNSouthOutputs(
         # xarr_out.areacello.plot()
 
     def save_diagnostic_1(
-        self, sia, column_name, descr, forecast_id="001", output_dir=None
+        self,
+        sia: xr.DataArray,
+        column_name: str,
+        descr: str,
+        forecast_id: str = "001",
+        output_dir: str | None = None,
     ):
+        r"""
+        Save Diagnostic 1 as a text file.
+
+        This method saves the Sea Ice Area (SIA) data for Diagnostic 1 SIPN submission as a text file.
+        The data is rounded to 4 decimal places and saved in the specified output directory
+        or a default one if not provided.
+
+        Args:
+            sia: Sea Ice Area dataset containing the SIA data.
+            column_name: Name of the column containing the SIA data in the `sia` dataset.
+            descr: Description of the diagnostic being saved (e.g., "area").
+            forecast_id (optional): Ensemble member identifier (default is "001"). Not used in this method.
+            output_dir (optional): Directory path where the text file will be saved.
+        """
         output_dir = self.get_output_dir(output_dir) / Path("txt")
         self.make_output_dir(output_dir)
 
@@ -290,7 +398,29 @@ class SIPNSouthOutputs(
         df_sia_rounded = df_sia.map(lambda x: f"{x:.4f}").astype(float)
         df_sia_rounded.to_csv(filepath, index=False, header=False)
 
-    def save_diagnostic_2(self, sia_binned, descr, forecast_id="001", output_dir=None):
+    def save_diagnostic_2(
+        self,
+        sia_binned: xr.DataArray,
+        descr: str,
+        forecast_id: str = "001",
+        output_dir: str | None = None,
+    ):
+        r"""
+        Save Diagnostic 2 as a text file.
+
+        This method saves the binned Sea Ice Area (SIA) data for Diagnostic 2 of SIPN submission
+        as a text file. The data is rounded to 4 decimal places and saved in the specified output
+        directory or a default one if not provided.
+
+        Args:
+            sia_binned: Binned Sea Ice Area dataarray containing the SIA data.
+            descr: Description of the diagnostic being saved (e.g., "area_binned").
+            forecast_id: Ensemble member identifier.
+                         Default is "001".
+            output_dir: Optional directory path where the text file will be saved.
+                        Default is None and the default directory will be used.
+        """
+
         output_dir = self.get_output_dir(output_dir) / Path("txt")
         self.make_output_dir(output_dir)
 
@@ -312,14 +442,26 @@ class SIPNSouthOutputs(
         df_pivot = df_pivot.map(lambda x: f"{x:.4f}").astype(float)
         df_pivot.to_csv(filepath, index=False, header=False)
 
-    def save_diagnostic_3(self, xarr, descr, forecast_id="001", output_dir=None):
-        """Output xarray DataSet to netCDF file.
+    def save_diagnostic_3(
+        self,
+        xarr: xr.Dataset,
+        descr: str,
+        forecast_id: str = "001",
+        output_dir: str | None = None,
+    ):
+        r"""
+        Output xarray DataSet to a NetCDF file.
 
-        Compress and output to netCDF file as per Diagnostic 3.
+        This method saves the Sea Ice Concentration (SIC) data as per Diagnostic 3 of SIPN submission
+        as a compressed NetCDF file in the specified output directory or a default one if not provided.
 
         Args:
-            xarr (xarr.DataSet): Dataset to output to file.
-            forecast_id (int): Which ensemble member is being generated.
+            xarr: Dataset containing the SIC data to be saved.
+            descr: Description of the diagnostic being saved (e.g., "concentration").
+            forecast_id (optional): Ensemble member identifier.
+                                    Default is "001".
+            output_dir (optional): Directory path where the NetCDF file will be saved.
+                                   Default is None and the default directory will be used.
 
         Returns:
             None
@@ -335,19 +477,74 @@ class SIPNSouthOutputs(
 
         xarr.to_netcdf(file_path, mode="w", encoding=vars_encoding | coords_encoding)
 
-    def get_output_dir(self, output_dir=None):
+    def get_output_dir(self, output_dir: str | Path | None = None) -> Path:
+        r"""
+        Get the output directory path based on forecast dates or provided input.
+
+        This method returns the output directory path where diagnostic files will be saved. If a
+        `output_dir` is provided, it is returned as is. Otherwise, a default output directory based
+        on the forecast start and end years is created.
+
+        Args:
+            output_dir: Optional Path object representing the directory path to use for saving diagnostics.
+                Defaults to None, in which case the method generates a default output directory based
+                on forecast dates.
+
+        Returns:
+            Path: The output directory path as a Path object.
+        """
         if not output_dir:
             start_year = pd.to_datetime(self.forecast_start_date).strftime("%Y")
             end_year = pd.to_datetime(self.forecast_end_date).strftime("%Y")
             output_dir = Path(f"outputs/{start_year}-{end_year}")
         return output_dir
 
-    def make_output_dir(self, output_dir):
+    def make_output_dir(self, output_dir: str):
+        r"""
+        Create the output directory if it doesn't exist.
+
+        This method creates the specified output directory as a `Path` object if it does not already
+        exist. If the directory already exists, no action is taken.
+
+        Args:
+            output_dir: The path to the directory that should be created, represented as a Path object.
+        """
         if not os.path.exists(output_dir):
             output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def main():
+    r"""
+    Main entry point for running SIPN diagnostics and generating outputs.
+
+    This is the main entry point for running Sea Ice Prediction Network (SIPN) diagnostics and
+    generating outputs using the `icenet_sipn_south` module. It parses command-line arguments,
+    initialises a `SIPNSouthOutputs` object with provided configuration, and runs the specified
+    diagnostics.
+
+    Args:
+        None (command-line arguments are parsed using `argparse`).
+
+    Returns:
+        None
+
+    Command-Line Arguments:
+      - `pipeline_path`: Path to the IceNet pipeline root directory.
+      - `predict_name`: Name of the prediction dataset (found under `pipeline/results/predict/`,
+                        e.g., "fc.2024-11-30_south").
+      - `forecast_init_date`: Forecast initialisation date (format: YYYY-MM-DD).
+      - `--diagnostics` (optional): Comma-separated list of diagnostics to run (e.g., "1,2,3" for all three).
+      - `--forecast_leadtime` (optional): Forecast lead time in days. Only used if hindcasting.
+      - `--get_obs` (optional): Set to True if downloading observational data is required.
+      - `--method` (optional): Method used for diagnostics (default is "mean").
+      - `--plot` (optional): Set to True if generating diagnostic plots is desired.
+
+    Notes:
+      - The script expects command-line arguments to be provided when running the `main`
+        function.
+      - This function initialises a `SIPNSouthOutputs` object with the provided configuration
+        and runs the specified diagnostics by calling the corresponding methods on this object.
+    """
     args = diagnostic_args()
 
     pipeline_path = Path(args.pipeline_path)
