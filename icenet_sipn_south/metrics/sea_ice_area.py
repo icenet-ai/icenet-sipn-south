@@ -15,27 +15,37 @@ class SeaIceArea(ABC):
 
     def _compute_sea_ice_area(
         self,
-        sea_ice_concentration,
-        grid_cell_area=25 * 25,
-        threshold=0.15,
-        plot=False,
+        sea_ice_concentration: xr.DataArray,
+        grid_cell_area: float = 25 * 25,
+        threshold: float = 0.15,
     ):
-        """Compute Sea Ice Area for an image for a given day.
+        r"""
+        Compute Sea Ice Area for an image for a given day.
 
         Computes the total Sea Ice Area (SIC>=15%) for one day.
+        It takes a sea ice concentration data array and optional parameters for grid cell area,
+        concentration threshold.
 
         Args:
-            grid_cell_area: Grid cell area in km^2.
+            sea_ice_concentration:
+                The input sea ice concentration data with dimensions (time, xc, yc) and
+                ensemble if multi-model ensemble is used, i.e. (ensemble, time, xc, yc).
+            grid_cell_area (optional):
+                Grid cell area in km². Default is 25km by 25km.
+            threshold (optional):
+                Sea Ice Concentration threshold for considering a grid cell as sea ice.
+                Default is 15% (0.15).
+
+        Returns:
+            xr.DataArray
+                Total Sea Ice Area in 10⁶ km² with dimensions (time) if ensemble dimension exists,
+                otherwise (time, xc, yc).
         """
         # self.clear_sia()
         sic = sea_ice_concentration
 
         # Mask values less than the threshold
         sic = sic.where(sic >= threshold)
-
-        if plot:
-            xr.plot.imshow(sic.squeeze())
-            return
 
         # Prevent summation across "ensemble" dimension
         valid_dims = [dim for dim in sic.dims if dim != "ensemble"]
@@ -48,16 +58,19 @@ class SeaIceArea(ABC):
 
         return sea_ice_area
 
-    def _compute_binned_sea_ice_area(self, sea_ice_concentration, *args, **kwargs):
-        """Compute binned Sea Ice Area for a singular day.
+    def _compute_binned_sea_ice_area(
+        self, sea_ice_concentration: xr.DataArray, *args, **kwargs
+    ):
+        r"""
+        Compute binned Sea Ice Area for a singular day.
 
         Computes Sea Ice Area binned by longitude. Binning is per 10deg from 0 to 360.
         E.g. 0<=lon<10, 10<=lon<20, ..., 350<=lon<360
 
         Args:
-            sea_ice_concentration (xarray.DataArray): Sea Ice Concentration as a fraction, not %.
-            grid_cell_area (float, optional): Area of each individual cell, default assumes EASE2 25km grid. Defaults to 25*25.
-            threshold (float, optional): Threshold to apply masking when computing Sea Ice Area (SIA).
+            sea_ice_concentration: Sea Ice Concentration as a fraction, not %.
+            grid_cell_area (optional): Area of each individual cell, default assumes EASE2 25km grid.  Default is 25km by 25km.
+            threshold (optional): Threshold to apply masking when computing Sea Ice Area (SIA).
 
         Returns:
             sea_ice_area_binned (xarray.DataArray): Computed Sea Ice Area, excluding masked regions. Dims: [36, 90]
@@ -80,11 +93,38 @@ class SeaIceArea(ABC):
         return sea_ice_area_binned
 
     def compute_daily_sea_ice_area(
-        self, method="mean", grid_cell_area=25 * 25, threshold=0.15, plot=False
+        self,
+        method: str = "mean",
+        grid_cell_area: float = 25 * 25,
+        threshold: float = 0.15,
     ):
-        """Daily Sea Ice Area.
+        r"""
+        Compute daily Sea Ice Area (SIC>15%) based on specified method.
 
-        Computes the total Sea Ice Area (SIC>15%) for each day.
+        Computes the total Sea Ice Area (SIC>15%) for each day based on the specified method.
+        The daily sea ice area is calculated by summing the sea ice concentration within each
+        grid cell, considering only cells where the sea ice concentration exceeds the specified
+        threshold. The result is a time series of daily total sea ice area in million square kilometers
+        (10⁶ km²).  The result is added to the instance's `xarr` attribute as a new variable.
+
+        Args:
+            method (optional):
+                Method to use for calculating the daily sea ice area.
+                - "mean": Use mean sea ice concentration from all available ensemble members.
+                - "ensemble": Calculate daily total sea ice area for each ensemble member separately.
+                - "observation": Use observed sea ice concentrations to compute the daily total sea
+                ice area.
+                Default is "mean".
+            grid_cell_area (optional):
+                Area of a single grid cell in square kilometers (km²). Default is 625 km² (25km x 25km).
+            threshold (optional):
+                Minimum SIC required for a grid cell to be included in the total sea ice area
+                calculation. Default is 0.15 (15%).
+
+        Returns:
+            SeaIceAreaCalculator
+                Instance of `SeaIceAreaCalculator` for method chaining.
+
         """
         if method.casefold() == "mean":
             sic = self.xarr.sic_mean
@@ -96,7 +136,6 @@ class SeaIceArea(ABC):
         kwargs = {
             "grid_cell_area": grid_cell_area,
             "threshold": threshold,
-            "plot": plot,
         }
         sea_ice_area_daily = np.asarray(
             [
@@ -163,15 +202,16 @@ class SeaIceArea(ABC):
         return self
 
     def compute_monthly_sea_ice_area(
-        self, method="mean", grid_cell_area=25 * 25, threshold=0.15, plot=False
+        self, method="mean", grid_cell_area: float = 25 * 25, threshold: float = 0.15
     ):
-        """Monthly Sea Ice Area from daily.
+        r"""
+        Monthly Sea Ice Area from daily.
 
         Computes the total Sea Ice Area (SIC>=15%) for each day, then, averages the result
         from each of the days of the month into a monthly average Sea Ice Area.
         """
         self.compute_daily_sea_ice_area(
-            method=method, grid_cell_area=grid_cell_area, threshold=threshold, plot=plot
+            method=method, grid_cell_area=grid_cell_area, threshold=threshold
         )
 
         sea_ice_area_daily_ds = self.xarr.sea_ice_area_daily_mean
@@ -195,11 +235,37 @@ class SeaIceArea(ABC):
         return self
 
     def compute_binned_daily_sea_ice_area(
-        self, method="mean", grid_cell_area=25 * 25, threshold=0.15, plot=False
+        self,
+        method: str = "mean",
+        grid_cell_area: float = 25 * 25,
+        threshold: float = 0.15,
     ):
-        """Binned daily Sea Ice Area.
+        r"""
+        Compute binned (by 10° longitude) daily Sea Ice Area (SIC > 15%) for each day.
 
-        Computes the binned Sea Ice Area (SIC>15%) for each day.
+        This method calculates the total sea ice area in bins of 10° longitude for each day,
+        based on the provided `method`. It sums the sea ice concentration within each grid cell
+        falling within a specific bin and considers only cells where the SIC exceeds the specified
+        threshold. The result is added to the instance's `xarr` attribute as a new variable.
+
+        Args:
+            method (optional):
+                Method to use for calculating the daily sea ice area.
+                - "mean": Use mean sea ice concentration from all available ensemble members.
+                - "ensemble": Calculate daily total sea ice area for each ensemble member separately.
+                - "observation": Use observed sea ice concentrations to compute the daily total sea
+                ice area.
+                Default is "mean".
+            grid_cell_area (optional):
+                Area of a single grid cell in square kilometers (km²). Default is 625 km² (25km x 25km).
+            threshold (optional):
+                Minimum SIC required for a grid cell to be included in the total sea ice area
+                calculation. Default is 0.15 (15%).
+
+        Returns:
+            SeaIceAreaCalculator
+                Instance of `SeaIceAreaCalculator` for method chaining.
+
         """
         if method.casefold() == "mean":
             sic = self.xarr.sic_mean
@@ -211,7 +277,6 @@ class SeaIceArea(ABC):
         kwargs = {
             "grid_cell_area": grid_cell_area,
             "threshold": threshold,
-            "plot": plot,
         }
         sea_ice_area_binned_daily = np.asarray(
             [
@@ -302,6 +367,21 @@ class SeaIceArea(ABC):
         return self
 
     def plot_sia(self):
+        r"""
+        Plot Sea Ice Area (SIA) time series.
+
+        This method generates a time series plot of Sea Ice Area (SIA) using the SIA data available in
+        the instance's `xarr` attribute. It includes the mean SIA from the IceNet model and optionally,
+        individual ensemble run results, as well as observed SIA from OSI-SAF if available.
+
+        Notes:
+        - The plotted SIA data depends on the available variables in the instance's `xarr` attribute.
+            It always includes the mean SIA from IceNet (`sea_ice_area_daily_mean`).
+            If individual ensemble run results are present (`sea_ice_area_daily`), they are also plotted,
+            with uncertainty bands representing minimum and maximum values across ensembles (They are not
+            standard deviations).
+        - Observed SIA from OSI-SAF (`sea_ice_area_daily_osisaf`) is included in the plot if available.
+        """
         data_plt = {
             "Time": pd.date_range(
                 start=self.forecast_init_date,
