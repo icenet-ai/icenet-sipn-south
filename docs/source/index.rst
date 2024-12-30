@@ -15,6 +15,4 @@ documentation for details.
    :maxdepth: 2
    :caption: Contents:
 
-   icenet_sipn_south
-   icenet_sipn_south.metrics
-   icenet_sipn_south.process
+   modules
