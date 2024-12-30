@@ -8,8 +8,9 @@ This has only been tested on a Linux x86 system.
 
 1. [Installation](#installation)
 2. [Usage](#usage)
-   - [Diagnostics Calculation](#sea-ice-area-calculation)
+   - [Python Diagnostics Generation](#python-sea-ice-area-calculation)
    - [Plotting Sea Ice Area Time Series](#plotting-sea-ice-area-time-series)
+   - [CLI Diagnostics Generation](#cli-diagnostics-generation)
 3. [Contributing](#contributing)
 4. [License](#license)
 
@@ -25,7 +26,7 @@ pip install -e .[docs]
 
 ## Usage
 
-### Sea Ice Area Calculation
+### Python: Sea Ice Area Calculation
 
 The `SIPNSouthOutputs` class is at the core of this project. It provides methods to compute daily and monthly sea ice area (SIA) from IceNet model outputs, OSI-SAF observations, or IceNet ensemble runs.
 
@@ -91,6 +92,37 @@ prediction.plot_sia()
 ```
 
 This will produce an interactive plot showing mean sea ice area from the IceNet model, along with optional ensemble run results and observed SIA from OSI-SAF (if available).
+
+### CLI: Diagnostics Generation
+
+A simpler approach would be to use the command line option:
+
+```bash
+$ icenet_sipnsouth_diagnostics ../../pipeline fc.2022-11-30_south 2022-11-30 -d 1,2,3 -p -m ensemble -fl 90
+```
+
+To get help on what the default and optional arguments do:
+
+```bash
+$ icenet_sipnsouth_diagnostics --help
+usage: icenet_sipnsouth_diagnostics [-h] [-d DIAGNOSTICS] [-fl FORECAST_LEADTIME] [-go] [-m {ensemble,mean}] [-p] pipeline_path predict_name forecast_init_date
+
+positional arguments:
+  pipeline_path         Path to the root IceNet-pipeline directory
+  predict_name          Name of prediction (found under `pipeline/results/predict/`)
+  forecast_init_date    Start date of the forecast to use
+
+options:
+  -h, --help            show this help message and exit
+  -d DIAGNOSTICS, --diagnostics DIAGNOSTICS
+                        Comma separated list of diagnostics to run, Options: `1,2,3`
+  -fl FORECAST_LEADTIME, --forecast_leadtime FORECAST_LEADTIME
+                        IceNet by default forecasts up to 93 days ahead, can instead specify how many days to process for this diagnostic, Default=90
+  -go, --get-obs        Whether to include OSI-SAF observational data in plot/processing
+  -m {ensemble,mean}, --method {ensemble,mean}
+                        Whether to process ensemble of predictions or ensemble mean
+  -p, --plot            Whether to show any plots
+```
 
 ## Documentation
 
