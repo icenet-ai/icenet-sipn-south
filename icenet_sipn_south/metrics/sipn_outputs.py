@@ -153,8 +153,8 @@ class SIPNSouthOutputs(
         self.compute_daily_sea_ice_area(method=method)
         if hasattr(self, "obs"):
             self.compute_daily_sea_ice_area(method="observation")
-        if self.plot:
-            self.plot_sia()
+
+        self.plot_sia(show_plot=self.plot)
 
         if method == "ensemble":
             sia = self.xarr.sea_ice_area_daily

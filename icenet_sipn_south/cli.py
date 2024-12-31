@@ -57,7 +57,7 @@ def diagnostic_args() -> object:
         "--plot",
         default=False,
         action="store_true",
-        help="Whether to show any plots",
+        help="Whether to display any plots being generated",
     )
 
     args = ap.parse_args()

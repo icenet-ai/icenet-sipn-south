@@ -15,6 +15,7 @@ maintainers = [
 dependencies = [
   "icenet",
   "ipywidgets",
+  "kaleido",
   "matplotlib",
   "netcdf4",
   "pip",

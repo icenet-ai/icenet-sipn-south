@@ -1,4 +1,5 @@
 from abc import ABC
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -366,13 +367,17 @@ class SeaIceArea(ABC):
 
         return self
 
-    def plot_sia(self):
+    def plot_sia(self, show_plot: bool = False, output_dir: str | None = None):
         r"""
         Plot Sea Ice Area (SIA) time series.
 
         This method generates a time series plot of Sea Ice Area (SIA) using the SIA data available in
         the instance's `xarr` attribute. It includes the mean SIA from the IceNet model and optionally,
         individual ensemble run results, as well as observed SIA from OSI-SAF if available.
+
+        Args:
+            show_plot (optional): Whether to display the generated plot.
+            output_dir (optional): Directory path where the plot will be saved.
 
         Notes:
         - The plotted SIA data depends on the available variables in the instance's `xarr` attribute.
@@ -533,4 +538,19 @@ class SeaIceArea(ABC):
             font=dict(size=14),
         )
 
-        fig.show()
+        # `get_output_dir` and `make_output_dir` are defined in the derived class
+        output_dir = self.get_output_dir(output_dir) / Path("png")
+        self.make_output_dir(output_dir)
+
+        start_date = self.forecast_init_date
+        end_date = self.forecast_end_date
+        start_date = pd.to_datetime(self.forecast_start_date).strftime("%Y%m%d")
+        end_date = pd.to_datetime(self.forecast_end_date).strftime("%Y%m%d")
+        descr = "total_sea_ice_area"
+        filepath = output_dir / Path(
+            f"{self.group_name}_{start_date}-{end_date}_{descr}.png"
+        )
+
+        fig.write_image(filepath, scale=2, width=1920, height=1080)
+        if show_plot:
+            fig.show()
