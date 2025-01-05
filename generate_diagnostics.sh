@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# This script generates diagnostics 1-3 for SIPN South submission.
+# It expects an icenet pipeline directory in the root called 'icenet-pipeline/'
+# which has the prediction output netCDF generated prior to being run
+# under './icenet-pipeline/results/forecasts'
+
 # Start year to process
 export YEAR_START=${1}
 # End year to process
@@ -17,6 +22,6 @@ for ((i=$YEAR_START;i<=$YEAR_END;i++))
 do
     YEAR=$i
     echo Processing ${YEAR}
-    icenet_sipnsouth_diagnostics ../icenet-pipeline fc.${YEAR}-11-30_south ${YEAR}-11-30 -d ${DIAGNOSTICS} -m ${METHOD} -fl ${FORECAST_LEADTIME}
-    #icenet_sipnsouth_diagnostics ../icenet-pipeline fc.${YEAR}-11-30_south ${YEAR}-11-30 -d ${DIAGNOSTICS} -p -m ${METHOD} -fl ${FORECAST_LEADTIME}
+    icenet_sipnsouth_diagnostics ./icenet-pipeline fc.${YEAR}-11-30_south ${YEAR}-11-30 -d ${DIAGNOSTICS} -m ${METHOD} -fl ${FORECAST_LEADTIME}
+    #icenet_sipnsouth_diagnostics ./icenet-pipeline fc.${YEAR}-11-30_south ${YEAR}-11-30 -d ${DIAGNOSTICS} -p -m ${METHOD} -fl ${FORECAST_LEADTIME}
 done

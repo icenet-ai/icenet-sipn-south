@@ -93,9 +93,28 @@ prediction.plot_sia()
 
 This will produce an interactive plot showing mean sea ice area from the IceNet model, along with optional ensemble run results and observed SIA from OSI-SAF (if available).
 
-### CLI: Diagnostics Generation
+### CLI: Diagnostics Generation (Option 1)
 
-A simpler approach would be to use the command line option:
+A simpler approach would be to use the command line option.
+
+To generate diagnostics for the year 2024 (assuming prediction netCDF output is read and located under `./pipeline/results/forecasts/`:
+
+```bash
+$ ./generate_diagnostics.sh 2024 2024
+```
+
+To generate diagnostics for a continuous year range (i.e., for all years between the two, inclusive of start and end years):
+
+```bash
+$ ./generate_diagnostics.sh 2017 2024
+```
+
+This will generate diagnostics for the years: 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024. Again, assuming these predictions have
+already been generated using icenet.
+
+### CLI: Diagnostics Generation (Option 2)
+
+The above BASH script effectively calls the following command. If you'd like more control over the options compared the to the default:
 
 ```bash
 $ icenet_sipnsouth_diagnostics ../../pipeline fc.2022-11-30_south 2022-11-30 -d 1,2,3 -p -m ensemble -fl 90
