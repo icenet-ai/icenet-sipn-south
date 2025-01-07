@@ -164,8 +164,9 @@ cython_debug/
 **/*.pvsm
 **/*.swp
 **/*.nc
+**/*.zip
 
 # Custom large data directories
 data/
-outputs/
-outputs/netcdf/
+notebooks/outputs
+**/_sicfile/
