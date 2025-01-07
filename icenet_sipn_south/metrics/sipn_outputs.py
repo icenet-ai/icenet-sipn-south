@@ -123,6 +123,15 @@ class SIPNSouthOutputs(
         """Used to check that the forecast period is within June-November."""
         raise NotImplementedError
 
+    def get_date_range(self):
+        r"""
+        Get start and end dates
+        """
+        start_date = pd.to_datetime(self.forecast_start_date).strftime("%Y%m%d")
+        end_date = pd.to_datetime(self.forecast_end_date).strftime("%Y%m%d")
+
+        return start_date, end_date
+
     def diagnostic_1(self, method: str = "mean", output_dir: str | None = None):
         r"""
         Process Diagnostic 1: Total Sea Ice Area.
@@ -163,7 +172,7 @@ class SIPNSouthOutputs(
                 self.save_diagnostic_1(
                     sia.sel(ensemble=ensemble),
                     column_name="sea_ice_area_daily",
-                    descr="totalarea",
+                    descr="total-area",
                     forecast_id=str(ensemble + 1),
                     output_dir=output_dir,
                 )
@@ -172,7 +181,7 @@ class SIPNSouthOutputs(
             self.save_diagnostic_1(
                 sia,
                 column_name="sea_ice_area_daily_mean",
-                descr="totalarea",
+                descr="total-area",
                 forecast_id=str(1),
                 output_dir=output_dir,
             )
@@ -386,17 +395,14 @@ class SIPNSouthOutputs(
 
         df = sia.to_dataframe()
         days = df.index.array
-        start_date, end_date = days[0], days[-1]
-        start_date, end_date = (
-            pd.to_datetime(start_date).strftime("%Y%m%d"),
-            pd.to_datetime(end_date).strftime("%Y%m%d"),
-        )
-        filepath = output_dir / Path(
+        start_date, end_date = self.get_date_range()
+
+        file_path = output_dir / Path(
             f"{self.group_name}_{forecast_id.zfill(3)}_{start_date}-{end_date}_{descr}.txt"
         )
         df_sia = df[column_name].to_frame().T
         df_sia_rounded = df_sia.map(lambda x: f"{x:.4f}").astype(float)
-        df_sia_rounded.to_csv(filepath, index=False, header=False)
+        df_sia_rounded.to_csv(file_path, index=False, header=False)
 
     def save_diagnostic_2(
         self,
@@ -426,13 +432,9 @@ class SIPNSouthOutputs(
 
         df = sia_binned.transpose("bins", "day").to_dataframe().reset_index()
         days = df.day
-        start_date, end_date = days.min(), days.max()
-        start_date, end_date = (
-            pd.to_datetime(start_date).strftime("%Y%m%d"),
-            pd.to_datetime(end_date).strftime("%Y%m%d"),
-        )
+        start_date, end_date = self.get_date_range()
 
-        filepath = output_dir / Path(
+        file_path = output_dir / Path(
             f"{self.group_name}_{forecast_id.zfill(3)}_{start_date}-{end_date}_{descr}.txt"
         )
 
@@ -440,7 +442,7 @@ class SIPNSouthOutputs(
 
         # Round values as required
         df_pivot = df_pivot.map(lambda x: f"{x:.4f}").astype(float)
-        df_pivot.to_csv(filepath, index=False, header=False)
+        df_pivot.to_csv(file_path, index=False, header=False)
 
     def save_diagnostic_3(
         self,
@@ -469,7 +471,11 @@ class SIPNSouthOutputs(
         output_dir = self.get_output_dir(output_dir) / Path("netcdf")
         self.make_output_dir(output_dir)
 
-        file_path = output_dir / Path(f"bas_{forecast_id.zfill(3)}_{descr}.nc")
+        start_date, end_date = self.get_date_range()
+
+        file_path = output_dir / Path(
+            f"{self.group_name}_{forecast_id.zfill(3)}_{start_date}-{end_date}_{descr}.nc"
+        )
 
         compression = dict(zlib=True, complevel=9)
         vars_encoding = {var: compression for var in xarr.data_vars}
